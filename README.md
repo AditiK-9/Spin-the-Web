@@ -31,7 +31,7 @@ The remaining slices simply link to their websites.
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/spin-the-web.git
+git clone https://github.com/AditiK-9/spin-the-web.git
 cd spin-the-web
 ```
 
