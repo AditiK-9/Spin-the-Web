@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spin the Web</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --gold: #FFD700; --gold-dark: #C8A800; --bg: #1a0533; --bg2: #2a0a4a;
+    --neon-pink: #ff3cac; --neon-blue: #4cc9f0; --neon-yellow: #ffe94a;
+    --text: #fff; --radius: 16px;
+  }
+  body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 15%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 75% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 35%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 20% 85%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 65% 50%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 45% 90%, rgba(255,255,255,0.5) 0%, transparent 100%);
+    pointer-events: none; z-index: 0;
+  }
+  header { width: 100%; text-align: center; padding: 2.5rem 1rem 1rem; position: relative; z-index: 1; }
+  .logo { font-family: 'Fredoka One', cursive; font-size: clamp(2.5rem, 6vw, 4rem); letter-spacing: 2px; background: linear-gradient(135deg, var(--neon-yellow), var(--gold), var(--neon-pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; filter: drop-shadow(0 0 18px rgba(255,215,0,0.5)); line-height: 1.1; }
+  .tagline { font-size: 1rem; color: rgba(255,255,255,0.6); margin-top: 0.4rem; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; }
+  .lights-bar { display: flex; gap: 10px; justify-content: center; margin: 1rem 0 0.5rem; }
+  .bulb { width: 12px; height: 12px; border-radius: 50%; animation: blink 1.2s infinite alternate; }
+  .bulb:nth-child(odd) { background: var(--neon-yellow); animation-delay: 0s; }
+  .bulb:nth-child(even) { background: var(--neon-pink); animation-delay: 0.6s; }
+  .bulb:nth-child(3n) { background: var(--neon-blue); }
+  @keyframes blink { from { opacity: 1; } to { opacity: 0.25; } }
+  main { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; padding: 1rem 1rem 3rem; position: relative; z-index: 1; width: 100%; max-width: 560px; }
+  .wheel-stage { position: relative; width: 360px; height: 360px; flex-shrink: 0; }
+  .wheel-stage::before { content: ''; position: absolute; inset: -12px; border-radius: 50%; background: conic-gradient(from 0deg, #ff3cac, #ffe94a, #4cc9f0, #ff3cac); animation: spin-glow 4s linear infinite; z-index: 0; }
+  .wheel-stage::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; background: var(--bg); z-index: 1; }
+  @keyframes spin-glow { to { transform: rotate(360deg); } }
+  #wheel-canvas { position: relative; z-index: 2; border-radius: 50%; display: block; }
+  .pointer { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); z-index: 10; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
+  .spin-btn { font-family: 'Fredoka One', cursive; font-size: 1.4rem; letter-spacing: 1px; padding: 0.85rem 3rem; border: none; border-radius: 50px; background: linear-gradient(135deg, var(--neon-pink), #c026d3); color: #fff; cursor: pointer; box-shadow: 0 0 24px rgba(255,60,172,0.5), 0 4px 0 #7a1568; transition: transform 0.1s, box-shadow 0.1s; position: relative; top: 0; }
+  .spin-btn:hover { transform: translateY(-2px); box-shadow: 0 0 32px rgba(255,60,172,0.7), 0 6px 0 #7a1568; }
+  .spin-btn:active { transform: translateY(2px); box-shadow: 0 0 16px rgba(255,60,172,0.4), 0 2px 0 #7a1568; }
+  .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .result-card { width: 100%; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: var(--radius); padding: 1.25rem 1.5rem; text-align: center; min-height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; transition: border-color 0.3s; }
+  .result-card.has-result { border-color: var(--gold); }
+  .result-emoji { font-size: 2rem; }
+  .result-name { font-family: 'Fredoka One', cursive; font-size: 1.5rem; color: var(--gold); }
+  .result-desc { font-size: 0.9rem; color: rgba(255,255,255,0.65); }
+  .result-extra { font-size: 0.85rem; color: rgba(255,255,255,0.5); font-style: italic; margin-top: 2px; max-width: 400px; line-height: 1.4; }
+  .api-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 50px; background: rgba(255,215,0,0.15); border: 1px solid rgba(255,215,0,0.3); color: var(--gold); letter-spacing: 1px; text-transform: uppercase; }
+  .visit-btn { display: none; font-family: 'Fredoka One', cursive; font-size: 1rem; padding: 0.6rem 2rem; border-radius: 50px; background: linear-gradient(135deg, var(--gold), #ffb300); color: #1a0533; border: none; cursor: pointer; text-decoration: none; box-shadow: 0 0 16px rgba(255,215,0,0.4), 0 3px 0 #9a6e00; transition: transform 0.1s; margin-top: 4px; }
+  .visit-btn:hover { transform: translateY(-1px); }
+  .visit-btn:active { transform: translateY(1px); }
+  .loading-indicator { font-size: 0.8rem; color: rgba(255,255,255,0.4); animation: pulse 1s infinite alternate; }
+  @keyframes pulse { from { opacity: 0.4; } to { opacity: 1; } }
+  .site-list-section { width: 100%; }
+  .site-list-title { font-family: 'Fredoka One', cursive; font-size: 1rem; color: rgba(255,255,255,0.4); text-align: center; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 0.75rem; }
+  .site-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  .site-pill { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 50px; padding: 6px 14px; font-size: 0.8rem; text-align: center; color: rgba(255,255,255,0.65); display: flex; align-items: center; gap: 6px; justify-content: center; }
+  .site-pill span { font-size: 1rem; }
+  .site-pill.has-api { border-color: rgba(255,215,0,0.3); color: rgba(255,255,255,0.85); }
+  footer { text-align: center; padding: 1rem; font-size: 0.75rem; color: rgba(255,255,255,0.25); position: relative; z-index: 1; }
+  @media (max-width: 420px) { .wheel-stage { width: 300px; height: 300px; } #wheel-canvas { width: 300px; height: 300px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🎰 Spin the Web</div>
+  <p class="tagline">Spin. Land. Explore.</p>
+  <div class="lights-bar">
+    <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+    <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+    <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+    <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+  </div>
+</header>
+
+<main>
+  <div class="wheel-stage">
+    <svg class="pointer" width="34" height="44" viewBox="0 0 34 44">
+      <polygon points="17,4 32,40 17,32 2,40" fill="#FFD700" stroke="#C8A800" stroke-width="1.5" stroke-linejoin="round"/>
+    </svg>
+    <canvas id="wheel-canvas" width="360" height="360"></canvas>
+  </div>
+
+  <button class="spin-btn" id="spin-btn">SPIN IT!</button>
+
+  <div class="result-card" id="result-card">
+    <div class="result-desc" id="idle-msg">Spin the wheel to discover your next destination ✨</div>
+    <div class="result-emoji" id="result-emoji" style="display:none"></div>
+    <div class="result-name" id="result-name"></div>
+    <div class="result-desc" id="result-desc"></div>
+    <div class="result-extra" id="result-extra"></div>
+    <div class="api-badge" id="api-badge" style="display:none">Live data</div>
+    <div class="loading-indicator" id="loading-indicator" style="display:none">⏳ Fetching live data...</div>
+    <a class="visit-btn" id="visit-btn" target="_blank" rel="noopener">🚀 Take me there!</a>
+  </div>
+
+  <div class="site-list-section">
+    <div class="site-list-title">What's on the wheel</div>
+    <div class="site-grid" id="site-grid"></div>
+  </div>
+</main>
+
+<footer>Spin responsibly. Results are randomised every time. ⚡ Live data powered by Wikipedia, NASA, Hacker News, Spotify, Open Library & Duolingo APIs.</footer>
+
+<script>
+// ── API KEYS ──────────────────────────────────────────────
+const NASA_KEY    = 'YOUR_NASA_KEY_HERE';
+const SPOTIFY_ID  = 'YOUR_SPOTIFY_ID_HERE';
+const SPOTIFY_SEC = 'YOUR_SPOTIFY_SECRET_HERE';
+
+// ── SITES LIST ────────────────────────────────────────────
+const sites = [
+  { name: "Wikipedia",       emoji: "📖", desc: "Fall down a random rabbit hole",         url: "https://en.wikipedia.org/wiki/Special:Random",   color: "#3a86ff", apiKey: "wikipedia" },
+  { name: "Reddit",          emoji: "🔥", desc: "See what the internet is talking about", url: "https://www.reddit.com/r/popular",                color: "#ff4500" },
+  { name: "NASA APOD",       emoji: "🚀", desc: "Today's astronomy picture",              url: "https://apod.nasa.gov/apod/astropix.html",        color: "#1e3a5f", apiKey: "nasa" },
+  { name: "The Onion",       emoji: "🧅", desc: "America's finest news source",           url: "https://www.theonion.com",                        color: "#2d6a00" },
+  { name: "Hacker News",     emoji: "💻", desc: "Tech & startup stories",                 url: "https://news.ycombinator.com",                    color: "#b84e00", apiKey: "hackernews" },
+  { name: "Coolors",         emoji: "🎨", desc: "Generate beautiful colour palettes",     url: "https://coolors.co/generate",                     color: "#7b2d8b" },
+  { name: "Earth View",      emoji: "🌍", desc: "Stunning satellite imagery",             url: "https://earthview.withgoogle.com",                color: "#0d6e5a" },
+  { name: "The Pudding",     emoji: "📊", desc: "Visual essays on culture & data",        url: "https://pudding.cool",                            color: "#5c3d9e" },
+  { name: "Radio Garden",    emoji: "📻", desc: "Live radio from around the world",       url: "https://radio.garden",                            color: "#006d3b" },
+  { name: "Futility Closet", emoji: "🧩", desc: "Weird curiosities & paradoxes",          url: "https://www.futilitycloset.com",                  color: "#7a4f00" },
+  { name: "neal.fun",        emoji: "🎮", desc: "Oddly fun interactive toys",             url: "https://neal.fun",                                color: "#c0392b" },
+  { name: "This Is Sand",    emoji: "🏖️", desc: "Draw with coloured sand",               url: "https://thisissand.com",                          color: "#b06020" },
+  { name: "Duolingo",        emoji: "🦜", desc: "Learn a language for free",              url: "https://www.duolingo.com",                        color: "#58cc02", apiKey: "duolingo" },
+  { name: "Open Library",    emoji: "📚", desc: "Free books from Open Library",           url: "https://openlibrary.org/explore",                 color: "#c0392b", apiKey: "openlibrary" },
+  { name: "Geoguessr",       emoji: "🗺️", desc: "Guess where in the world you are",      url: "https://www.geoguessr.com",                       color: "#1a7a4a" },
+  { name: "CNN",             emoji: "📰", desc: "Latest world news",                      url: "https://edition.cnn.com",                         color: "#cc0000" },
+  { name: "Spotify Charts",  emoji: "🎵", desc: "What the world is listening to",         url: "https://charts.spotify.com",                      color: "#1db954", apiKey: "spotify" },
+  { name: "SketchToy",       emoji: "✏️", desc: "Draw with beautiful light trails",       url: "https://sketchtoy.com",                           color: "#3a3a8c" },
+];
+
+// ── CANVAS SETUP ──────────────────────────────────────────
+const canvas = document.getElementById('wheel-canvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const cx = W/2, cy = W/2, r = W/2 - 4;
+const N = sites.length;
+const arc = (2 * Math.PI) / N;
+let angle = 0, spinning = false, landedIndex = null;
+
+function hexToRgb(hex) {
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+}
+function lighten(hex, amt) {
+  const [r,g,b] = hexToRgb(hex);
+  return `rgb(${Math.min(255,r+amt)},${Math.min(255,g+amt)},${Math.min(255,b+amt)})`;
+}
+
+function drawWheel(a) {
+  ctx.clearRect(0,0,W,W);
+  ctx.beginPath(); ctx.arc(cx,cy,r+3,0,2*Math.PI);
+  ctx.strokeStyle='#FFD700'; ctx.lineWidth=4; ctx.stroke();
+
+  for (let i=0; i<N; i++) {
+    const start = a + i*arc, end = start + arc;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,start,end); ctx.closePath();
+    ctx.fillStyle = landedIndex===i ? lighten(sites[i].color,60) : sites[i].color;
+    ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,start,end); ctx.closePath();
+    ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1.5; ctx.stroke();
+
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(start+arc/2);
+    const textR = r*0.62;
+    ctx.font=`${W<320?12:14}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(sites[i].emoji, textR, -8);
+    ctx.font=`600 ${W<320?9:11}px 'Nunito',sans-serif`; ctx.fillStyle='#fff';
+    ctx.shadowColor='rgba(0,0,0,0.6)'; ctx.shadowBlur=4;
+    ctx.fillText(sites[i].name.length>11 ? sites[i].name.slice(0,10)+'…' : sites[i].name, textR, 6);
+    // Small star for API sites
+    if (sites[i].apiKey) { ctx.font='8px sans-serif'; ctx.shadowBlur=0; ctx.fillStyle='#FFD700'; ctx.fillText('★', textR, 18); }
+    ctx.shadowBlur=0; ctx.restore();
+  }
+  ctx.beginPath(); ctx.arc(cx,cy,22,0,2*Math.PI); ctx.fillStyle='#1a0533'; ctx.fill();
+  ctx.strokeStyle='#FFD700'; ctx.lineWidth=3; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,7,0,2*Math.PI); ctx.fillStyle='#FFD700'; ctx.fill();
+}
+
+drawWheel(angle);
+
+// ── SITE GRID ─────────────────────────────────────────────
+const grid = document.getElementById('site-grid');
+sites.forEach(s => {
+  const pill = document.createElement('div');
+  pill.className = 'site-pill' + (s.apiKey ? ' has-api' : '');
+  pill.innerHTML = `<span>${s.emoji}</span>${s.name}${s.apiKey ? ' ★' : ''}`;
+  grid.appendChild(pill);
+});
+
+// ── SPOTIFY TOKEN ─────────────────────────────────────────
+let spotifyToken = null;
+async function getSpotifyToken() {
+  if (spotifyToken) return spotifyToken;
+  try {
+    const res = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=client_credentials&client_id=${SPOTIFY_ID}&client_secret=${SPOTIFY_SEC}`
+    });
+    const data = await res.json();
+    spotifyToken = data.access_token;
+    setTimeout(() => { spotifyToken = null; }, 3500000);
+    return spotifyToken;
+  } catch { return null; }
+}
+
+// ── API FETCHERS ──────────────────────────────────────────
+async function fetchWikipedia() {
+  try {
+    const res = await fetch('https://en.wikipedia.org/api/rest_v1/page/random/summary');
+    const data = await res.json();
+    return { extra: `📖 "${data.title}" — ${data.extract ? data.extract.slice(0,120)+'…' : 'A random Wikipedia article awaits!'}`, url: data.content_urls?.desktop?.page };
+  } catch { return null; }
+}
+
+async function fetchNASA() {
+  try {
+    const res = await fetch(`https://api.nasa.gov/planetary/apod?api_key=${NASA_KEY}`);
+    const data = await res.json();
+    return { extra: `🚀 Today: "${data.title}" — ${data.explanation ? data.explanation.slice(0,100)+'…' : ''}`, url: data.url ? 'https://apod.nasa.gov/apod/astropix.html' : null };
+  } catch { return null; }
+}
+
+async function fetchHackerNews() {
+  try {
+    const topRes = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
+    const ids = await topRes.json();
+    const pick = ids[Math.floor(Math.random()*10)];
+    const storyRes = await fetch(`https://hacker-news.firebaseio.com/v0/item/${pick}.json`);
+    const story = await storyRes.json();
+    return { extra: `💻 Top story: "${story.title}" — ${story.score} points`, url: story.url || `https://news.ycombinator.com/item?id=${story.id}` };
+  } catch { return null; }
+}
+
+async function fetchSpotify() {
+  try {
+    const token = await getSpotifyToken();
+    if (!token) return null;
+    const res = await fetch('https://api.spotify.com/v1/browse/featured-playlists?limit=1', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    const playlist = data?.playlists?.items?.[0];
+    if (playlist) return { extra: `🎵 Featured playlist: "${playlist.name}" — ${playlist.description || 'Check it out!'}`, url: playlist.external_urls?.spotify || 'https://charts.spotify.com' };
+    return null;
+  } catch { return null; }
+}
+
+async function fetchOpenLibrary() {
+  try {
+    const subjects = ['fiction','history','science','fantasy','mystery'];
+    const subject = subjects[Math.floor(Math.random()*subjects.length)];
+    const res = await fetch(`https://openlibrary.org/subjects/${subject}.json?limit=10`);
+    const data = await res.json();
+    const works = data.works || [];
+    const pick = works[Math.floor(Math.random()*works.length)];
+    if (pick) return { extra: `📚 Discover: "${pick.title}" by ${pick.authors?.[0]?.name || 'Unknown author'}`, url: `https://openlibrary.org${pick.key}` };
+    return null;
+  } catch { return null; }
+}
+
+async function fetchDuolingo() {
+  const languages = [
+    { name: 'Spanish', flag: '🇪🇸' }, { name: 'French', flag: '🇫🇷' },
+    { name: 'Japanese', flag: '🇯🇵' }, { name: 'German', flag: '🇩🇪' },
+    { name: 'Italian', flag: '🇮🇹' }, { name: 'Portuguese', flag: '🇧🇷' },
+    { name: 'Korean', flag: '🇰🇷' }, { name: 'Mandarin', flag: '🇨🇳' }
+  ];
+  const pick = languages[Math.floor(Math.random()*languages.length)];
+  return { extra: `🦜 Why not try learning ${pick.flag} ${pick.name} today?`, url: 'https://www.duolingo.com' };
+}
+
+const apiFetchers = {
+  wikipedia:   fetchWikipedia,
+  nasa:        fetchNASA,
+  hackernews:  fetchHackerNews,
+  spotify:     fetchSpotify,
+  openlibrary: fetchOpenLibrary,
+  duolingo:    fetchDuolingo,
+};
+
+// ── SPIN LOGIC ────────────────────────────────────────────
+document.getElementById('spin-btn').addEventListener('click', () => {
+  if (spinning) return;
+  spinning = true; landedIndex = null;
+
+  const btn = document.getElementById('spin-btn');
+  btn.disabled = true; btn.textContent = 'SPINNING…';
+  document.getElementById('idle-msg').style.display = 'none';
+  document.getElementById('result-emoji').style.display = 'none';
+  document.getElementById('result-name').textContent = '';
+  document.getElementById('result-desc').textContent = '';
+  document.getElementById('result-extra').textContent = '';
+  document.getElementById('api-badge').style.display = 'none';
+  document.getElementById('loading-indicator').style.display = 'none';
+  document.getElementById('visit-btn').style.display = 'none';
+  document.getElementById('result-card').classList.remove('has-result');
+
+  const target = Math.floor(Math.random() * N);
+  const extraSpins = (6 + Math.floor(Math.random()*4)) * 2 * Math.PI;
+  const targetAngle = extraSpins + (2*Math.PI - target*arc - arc/2 - Math.PI/2) - (angle % (2*Math.PI));
+  const duration = 4500 + Math.random()*1000;
+  const startTime = performance.now();
+  const startAngle = angle;
+
+  function ease(t) { return 1 - Math.pow(1-t, 4); }
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed/duration, 1);
+    angle = startAngle + targetAngle * ease(progress);
+    drawWheel(angle);
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      spinning = false; landedIndex = target; drawWheel(angle);
+      btn.disabled = false; btn.textContent = 'SPIN AGAIN!';
+
+      const site = sites[target];
+      document.getElementById('result-emoji').textContent = site.emoji;
+      document.getElementById('result-emoji').style.display = 'block';
+      document.getElementById('result-name').textContent = site.name;
+      document.getElementById('result-desc').textContent = site.desc;
+
+      const visitBtn = document.getElementById('visit-btn');
+      visitBtn.href = site.url;
+      visitBtn.style.display = 'inline-block';
+      document.getElementById('result-card').classList.add('has-result');
+
+      // Fetch live API data if available
+      if (site.apiKey && apiFetchers[site.apiKey]) {
+        document.getElementById('loading-indicator').style.display = 'block';
+        apiFetchers[site.apiKey]().then(result => {
+          document.getElementById('loading-indicator').style.display = 'none';
+          if (result) {
+            document.getElementById('result-extra').textContent = result.extra;
+            document.getElementById('api-badge').style.display = 'inline-block';
+            if (result.url) visitBtn.href = result.url;
+          }
+        }).catch(() => {
+          document.getElementById('loading-indicator').style.display = 'none';
+        });
+      }
+    }
+  }
+
+  requestAnimationFrame(animate);
+});
+</script>
+</body>
+</html>
